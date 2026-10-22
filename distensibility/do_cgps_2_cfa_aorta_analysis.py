@@ -381,6 +381,47 @@ def analyze_nstemi_cfa_aorta_area_profiles(patient_id, result_f=None):
         plt.show()
 
 
+        step = 0.5  # mm per index
+        n = min(len(s["area"]) for s in aligned_series)
+        x = np.arange(n) * step
+        lo, hi = 15, 25
+        win_min = max(sinus_of_valsalva_idx - 50, 10)                       # alignment window
+        win_max = min(sinus_of_valsalva_idx + 10, len(all_series[0]["area"]) - 10)
+
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))
+        for s in aligned_series:
+            ax1.plot(x, s["area"][:n], alpha=0.5)
+            ax2.plot(x[5:40], s["area"][5:40], ".-", alpha=0.5)
+        ax1.axvspan(win_min * step, win_max * step, color="green", alpha=0.1, label="alignment window")
+        ax1.axvline(sinus_of_valsalva_idx * step, color="k", ls="--", label="sinus idx (first scan)")
+        for ax in (ax1, ax2):
+            ax.axvspan(lo * step, hi * step, color="red", alpha=0.2, label="sampled area[15:25]")
+        for i in (10, 25, 40):
+            ax1.axvline(i * step, color="gray", ls=":")
+        ax1.set_title("Aligned profiles"); ax2.set_title("Zoom on indices 5-40")
+        ax1.set_xlabel("mm along centerline"); ax2.set_xlabel("mm along centerline")
+        ax1.set_ylabel("area (mm²)"); ax1.legend()
+        plt.tight_layout()
+        plt.show()
+
+        # Compute the slope and residuals for each series in the aligned series
+        idx = np.arange(lo, hi)
+        single_minus_median = []
+        for s in aligned_series:
+            a = np.asarray(s["area"][lo:hi], dtype=float)
+            slope, icpt = np.polyfit(idx * step, a, 1)
+            resid = a - (slope * idx * step + icpt)
+            single_minus_median.append(s["area"][20] - np.median(a))
+            print(f'{s["percent"]}: median {np.median(a):7.1f}  mean {a.mean():7.1f}  area[20] {s["area"][20]:7.1f}  '
+                f'slope {slope:6.1f} mm²/mm  residual std {resid.std():5.1f} mm²')
+        print("spread of (area[20] - window median) over phases:", np.std(single_minus_median))
+
+        # Compare the median of the raw series with the median of the aligned series
+        med_raw = np.array([np.median(s["area"][15:25]) for s in all_series])
+        med_al  = np.array([np.median(s["area"][15:25]) for s in aligned_series])
+        print("mean jump between neighbouring phases:", np.abs(np.diff(med_raw)).mean(), np.abs(np.diff(med_al)).mean())
+        print("range:", med_raw.max() - med_raw.min(), med_al.max() - med_al.min())
+
         
 
     measured_areas_10 = []
