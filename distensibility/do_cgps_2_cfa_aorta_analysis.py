@@ -489,13 +489,16 @@ def analyze_nstemi_cfa_aorta_area_profiles(patient_id, result_f=None):
 
 def analyze_all_nstemi():
     results_out = "/storage/Data/DTU-NSTEMI/DTUImageMeasures/NSTEMI/nstemi_distensibility_results.csv"
+    NSTEMI_scan_path = "/storage/Data/DTU-NSTEMI/DTUImageMeasures/NSTEMI"
+
+    NSTEMI_patients_ids = [x.rsplit("_", 1)[0] + "_" for x in os.listdir(NSTEMI_scan_path) if x.startswith("NSTEMI_")]
+    NSTEMI_patients_ids = sorted(np.unique(NSTEMI_patients_ids), key=lambda x: int(x.split("_")[1]))
+
     Path(os.path.dirname(results_out)).mkdir(parents=True, exist_ok=True)
     with open(results_out, 'w') as result_f:
         result_f.write("pseudo_id,min_a_20_mean,max_a_20_mean,min_a_20_median,max_a_20_median,n_scans,message\n")
 
-        max_id = 540
-        for i in range(0, max_id + 1):
-            patient_id = f"NSTEMI_{i:04d}_"
+        for patient_id in NSTEMI_patients_ids:
             print(f"Analyzing patient {patient_id}")
             analyze_nstemi_cfa_aorta_area_profiles(patient_id, result_f)
 
